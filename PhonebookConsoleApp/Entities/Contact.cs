@@ -9,8 +9,20 @@ namespace PhonebookConsoleApp.Entities
 {
     class Contact
     {
-        public string nameAndSurname { get; set; }
-        public string phoneNumber { get; set; }
-        public ContactPreference Preference { get; set; }
+        public string _nameAndSurname;
+        public string _phoneNumber;
+        public ContactPreference _Preference = ContactPreference.Normal;
+
+        public string nameAndSurname { get => _nameAndSurname; set => _nameAndSurname = value; }
+        public string phoneNumber { get => _phoneNumber; set => _phoneNumber = value; }
+        public ContactPreference Preference { get => _Preference; set => _Preference = value; }
+
+        public Contact AddValue(string nameAndSurname, string phoneNumber, ContactPreference Preference)
+        {
+            _nameAndSurname = nameAndSurname;
+            _phoneNumber = phoneNumber;
+            _Preference = Preference;
+            return this;
+        }
     }
 }
