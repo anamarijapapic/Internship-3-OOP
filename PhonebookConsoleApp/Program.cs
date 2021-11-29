@@ -451,6 +451,44 @@ namespace PhonebookConsoleApp
             }
         }
 
+        static void PrintAllCalls(Dictionary<Contact, List<Call>> phonebook)
+        {
+            var noCalls = false;
+            if (IsEmpty(phonebook))
+            {
+                noCalls = true;
+            }
+            else
+            {
+                Console.WriteLine("+--------------------+");
+                Console.WriteLine("| Ispis svih poziva: |");
+                Console.WriteLine("+--------------------+");
+
+                foreach (var record in phonebook)
+                {
+                    if (record.Value.Any())
+                    {
+                        foreach (var call in record.Value)
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine($"Poziv upucen kontaktu {record.Key.nameAndSurname}, (broj mobitela {record.Key.phoneNumber}):");
+                            Console.WriteLine($"Vrijeme uspostave poziva: {call.setupTime}");
+                            Console.WriteLine($"Status poziva: {call.Status}");
+                            Console.WriteLine($"Trajanje poziva: {call.duration} s");
+                        }
+                    }
+                    else
+                    {
+                        noCalls = true;
+                    }
+                }
+            }
+            if (noCalls)
+                Console.WriteLine("Popis poziva je prazan!");
+
+            ReturnToMenu(phonebook, "main");
+        }
+
         static void PrintMainMenu()
         {
             Console.Clear();
@@ -500,7 +538,7 @@ namespace PhonebookConsoleApp
                         break;
                     case 6:
                         Console.Clear();
-                        // PrintAllCalls(phonebook);
+                        PrintAllCalls(phonebook);
                         break;
                     case 7:
                         Console.Clear();
