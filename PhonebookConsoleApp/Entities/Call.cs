@@ -9,9 +9,9 @@ namespace PhonebookConsoleApp.Entities
 {
     class Call
     {
-        public DateTime _setupTime;
-        public CallStatus _Status;
-        public int _duration;
+        private DateTime _setupTime;
+        private CallStatus _Status;
+        private int _duration;
 
         public DateTime setupTime { get => _setupTime; set => _setupTime = value; }
         public CallStatus Status { get => _Status; set => _Status = value; }

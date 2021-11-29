@@ -22,20 +22,19 @@ namespace PhonebookConsoleApp
             {
                 {AddContact("Ante Antic", "11111111111", ContactPreference.Favorite), new List<Call>()
                     {
-                        AddCall(new DateTime(2021, 11, 1, 10, 0, 0), CallStatus.Missed, 11),
-                        AddCall(DateTime.Now, CallStatus.Ended, 20)
+                        AddCall(new DateTime(2021, 11, 1, 10, 0, 0), CallStatus.Ended, 15),
+                        AddCall(DateTime.Now, CallStatus.InProgress, 0)
                     }
                 },
                 {AddContact("Iva Ivic", "22222222222", ContactPreference.Normal), new List<Call>()
                     {
-                        AddCall(new DateTime(2021, 9, 8, 6, 0, 0), CallStatus.Missed, 11),
-                        AddCall(DateTime.Now, CallStatus.Ended, 20)
+                        AddCall(new DateTime(2021, 9, 8, 6, 0, 0), CallStatus.Missed, 0),
                     }
                 },
                 {AddContact("Pero Peric", "33333333333", ContactPreference.Blocked), new List<Call>()
                     {
-                        AddCall(new DateTime(2021, 11, 11, 0, 0, 0), CallStatus.Missed, 8),
-                        AddCall(new DateTime(2021, 1, 1, 0, 0, 0), CallStatus.Missed, 13)
+                        AddCall(new DateTime(2021, 11, 11, 0, 0, 0), CallStatus.Missed, 0),
+                        AddCall(new DateTime(2021, 1, 1, 0, 0, 0), CallStatus.Missed, 0)
                     }
                 }
             };
@@ -80,7 +79,7 @@ namespace PhonebookConsoleApp
                     Console.WriteLine($"Preferenca: {record.Key.Preference}");
                 }
             }
-            ReturnToMainMenu(phonebook);
+            ReturnToMenu(phonebook, "main");
         }
 
         static void AddNewContact(Dictionary<Contact, List<Call>> phonebook)
@@ -88,7 +87,6 @@ namespace PhonebookConsoleApp
             Console.WriteLine("+-------------------------------------+");
             Console.WriteLine("| Dodavanje novih kontakata u imenik: |");
             Console.WriteLine("+-------------------------------------+");
-            Console.WriteLine();
 
             var nameAndSurname = InputNameAndSurname();
             var phoneNumber = "";
@@ -101,9 +99,10 @@ namespace PhonebookConsoleApp
                 phoneNumber = InputPhoneNumber();
             } while (PhoneNumberDuplicate(phoneNumber, phonebook));
             var Preference = (ContactPreference)InputContactPreference();
-            phonebook.Add(AddContact(nameAndSurname, phoneNumber, Preference), null);
+            var emptyCallsList = new List<Call>();
+            phonebook.Add(AddContact(nameAndSurname, phoneNumber, Preference), emptyCallsList);
 
-            ReturnToMainMenu(phonebook);
+            ReturnToMenu(phonebook, "main");
         }
 
         static string InputNameAndSurname()
@@ -204,18 +203,19 @@ namespace PhonebookConsoleApp
                 Console.WriteLine("+--------------------------------+");
                 Console.WriteLine();
 
-                var keyFound = false;
                 Console.Write("Unesite podatke za kontakt koji zelite obrisati:\n");
                 var phoneNumberDelete = InputPhoneNumber();
+
+                var keyFound = false;
                 foreach (var record in phonebook)
                 {
                     if (record.Key.phoneNumber == phoneNumberDelete)
                     {
                         keyFound = true;
                         Console.WriteLine($"\nZelite izbrisati kontakt: {record.Key.nameAndSurname}");
-                        if(ConfirmAction())
+                        if (ConfirmAction())
                         {
-                            if (!(record.Value is null))
+                            if (record.Value.Any())
                                 record.Value.Clear();
                             phonebook.Remove(record.Key);
                             Console.WriteLine("\nKontakt uspjesno izbrisan!");
@@ -225,7 +225,17 @@ namespace PhonebookConsoleApp
                 if (!keyFound)
                     Console.WriteLine("\nNije pronaden kontakt s tim brojem mobitela!");
             }
-            ReturnToMainMenu(phonebook);
+            ReturnToMenu(phonebook, "main");
+        }
+
+        static Contact ContactExists(Dictionary<Contact, List<Call>> phonebook, string phoneNumber)
+        {
+            foreach (var record in phonebook)
+            {
+                if (record.Key.phoneNumber == phoneNumber)
+                    return record.Key;
+            }
+            return null;
         }
 
         static bool ConfirmAction()
@@ -261,9 +271,10 @@ namespace PhonebookConsoleApp
                 Console.WriteLine("+---------------------------------+");
                 Console.WriteLine();
 
-                var keyFound = false;
                 Console.Write("Unesite podatke za kontakt kojem zelite editirati preferencu:\n");
                 var phoneNumberEditPreference = InputPhoneNumber();
+
+                var keyFound = false;
                 foreach (var record in phonebook)
                 {
                     if (record.Key.phoneNumber == phoneNumberEditPreference)
@@ -281,10 +292,166 @@ namespace PhonebookConsoleApp
                 if (!keyFound)
                     Console.WriteLine("\nNije pronaden kontakt s tim brojem mobitela!");
             }
-            ReturnToMainMenu(phonebook);
+            ReturnToMenu(phonebook, "main");
         }
 
-            static void PrintMainMenu()
+        static void PrintAllCallsByContact(Dictionary<Contact, List<Call>> phonebook)
+        {
+            Console.Clear();
+            if (IsEmpty(phonebook))
+            {
+                Console.WriteLine("Nemate nijedan kontakt u imeniku!");
+            }
+            else
+            {
+                Console.WriteLine("+--------------------------------------+");
+                Console.WriteLine("| Ispis svih poziva s nekim kontaktom: |");
+                Console.WriteLine("+--------------------------------------+");
+                Console.WriteLine();
+
+                Console.Write("Unesite podatke za kontakt ciju povijest poziva zelite ispisati:\n");
+                var phoneNumberEditPreference = InputPhoneNumber();
+                
+                var keyFound = false;
+                var callsExist = false;
+                var callsByContact = new List<Call>();
+                foreach (var record in phonebook)
+                {
+                    if (record.Key.phoneNumber == phoneNumberEditPreference)
+                    {
+                        keyFound = true;
+                        if (!record.Value.Any())
+                        {
+                            Console.WriteLine("\nNema zabiljezenih poziva s ovim kontaktom!");
+                        }
+                        else
+                        {
+                            callsExist = true;
+                            Console.WriteLine($"\nSvi pozivi s kontaktom {record.Key.nameAndSurname} poredani vremenski od najnovijeg do najstarijeg:");
+                            foreach (var call in record.Value)
+                            {
+                                callsByContact.Add(call);
+                            }
+                        }
+                    }
+                }
+                if (callsExist)
+                {
+                    var sortedCallsByContact = from entry in callsByContact orderby entry.setupTime descending select entry;
+                    foreach (var call in sortedCallsByContact)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"Vrijeme uspostave poziva: {call.setupTime}");
+                        Console.WriteLine($"Status poziva: {call.Status}");
+                        Console.WriteLine($"Trajanje poziva: {call.duration} s");
+                    }
+                }
+                if (!keyFound)
+                    Console.WriteLine("\nNije pronaden kontakt s tim brojem mobitela!");
+            }
+            ReturnToMenu(phonebook, "sub");
+        }
+
+        static void MakeNewCall(Dictionary<Contact, List<Call>> phonebook)
+        {
+            Console.Clear();
+            if (IsEmpty(phonebook))
+            {
+                Console.WriteLine("Nemate nijedan kontakt u imeniku!");
+            }
+            else
+            {
+                Console.WriteLine("+-------------------------+");
+                Console.WriteLine("| Kreiranje novog poziva: |");
+                Console.WriteLine("+-------------------------+");
+                Console.WriteLine();
+
+                Console.Write("Unesite podatke za kontakt koji zelite nazvati:\n");
+                var phoneNumberMakeCall = InputPhoneNumber();
+
+                var keyFound = false;
+                foreach (var record in phonebook)
+                {
+                    if (record.Key.phoneNumber == phoneNumberMakeCall)
+                    {
+                        keyFound = true;
+                        if (record.Key.Preference is ContactPreference.Blocked)
+                        {
+                            Console.WriteLine($"\nNemoguce uspostaviti poziv! Kontakt {record.Key.nameAndSurname} je blokiran!");
+                        }
+                        else if (AnyCallsInProgress(phonebook))
+                        {
+                            Console.WriteLine($"\nNemoguce uspostaviti poziv s {record.Key.nameAndSurname} dok je drugi poziv u tijeku!");
+                            Console.WriteLine($"\nZelite li prekinuti poziv koji je u tijeku:");
+                            if (ConfirmAction())
+                            {
+                                EndCallInProgress(phonebook, 20);
+                                Console.WriteLine("\nPoziv uspjesno prekinut!");
+                            }
+                        }
+                        else
+                        {
+                            Random random = new Random();
+                            var choice = random.Next(1, 3);
+                            switch ((CallStatus)choice)
+                            {
+                                case (CallStatus)1:
+                                    record.Value.Add(AddCall(DateTime.Now, CallStatus.Missed, 0));
+                                    Console.WriteLine($"\n{record.Key.nameAndSurname} je propustio Vas poziv.");
+                                    break;
+                                case (CallStatus)2:
+                                    var randomDuration = random.Next(1, 21);
+                                    record.Value.Add(AddCall(DateTime.Now, CallStatus.InProgress, 0));
+                                    Console.WriteLine($"\n{record.Key.nameAndSurname} je odgovorio na Vas poziv.");
+                                    EndCallInProgress(phonebook, randomDuration);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+                }
+                if (!keyFound)
+                    Console.WriteLine("\nNemoguce uspostaviti poziv! Nije pronaden kontakt s tim brojem mobitela!");
+            }
+            ReturnToMenu(phonebook, "sub");
+        }
+
+        static bool AnyCallsInProgress(Dictionary<Contact, List<Call>> phonebook)
+        {
+            foreach (var record in phonebook)
+            {
+                if (record.Value.Any())
+                {
+                    foreach (var call in record.Value)
+                    {
+                        if (call.Status == CallStatus.InProgress)
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        static void EndCallInProgress(Dictionary<Contact, List<Call>> phonebook, int callDuration)
+        {
+            foreach (var record in phonebook)
+            {
+                if (record.Value.Any())
+                {
+                    foreach (var call in record.Value)
+                    {
+                        if (call.Status == CallStatus.InProgress)
+                        {
+                            call.Status = CallStatus.Ended;
+                            call.duration = callDuration;
+                        }
+                    }
+                }
+            }
+        }
+
+        static void PrintMainMenu()
         {
             Console.Clear();
             Console.WriteLine("+----------------- MENU -----------------+");
@@ -349,12 +516,22 @@ namespace PhonebookConsoleApp
             } while (!tryParseSuccess || userMenuChoice < 1 || userMenuChoice > 7);
         }
 
-        static void ReturnToMainMenu(Dictionary<Contact, List<Call>> phonebook)
+        static void ReturnToMenu(Dictionary<Contact, List<Call>> phonebook, string type)
         {
             Console.WriteLine();
-            Console.WriteLine("+---------------------------------+");
-            Console.WriteLine("| 0 - Povratak na glavni izbornik |");
-            Console.WriteLine("+---------------------------------+");
+            if (type is "main")
+            {
+                Console.WriteLine("+---------------------------------+");
+                Console.WriteLine("| 0 - Povratak na glavni izbornik |");
+                Console.WriteLine("+---------------------------------+");
+            }
+            else if (type is "sub")
+            {
+                Console.WriteLine("+-------------------------+");
+                Console.WriteLine("| 0 - Povratak na submenu |");
+                Console.WriteLine("+-------------------------+");
+            }
+
             int userReturnChoice;
             bool tryParseSuccess;
             do
@@ -364,7 +541,11 @@ namespace PhonebookConsoleApp
                 if (!tryParseSuccess || userReturnChoice != 0)
                     Console.WriteLine("Neispravan unos!");
             } while (!tryParseSuccess || userReturnChoice != 0);
-            MainMenu(phonebook);
+
+            if (type is "main")
+                MainMenu(phonebook);
+            else if (type is "sub")
+                ManageContactSubmenu(phonebook);
         }
 
         static void PrintManageContactSubmenu()
@@ -391,10 +572,10 @@ namespace PhonebookConsoleApp
                 switch (userSubmenuChoice)
                 {
                     case 1:
-                        // PrintAllCallsByContact(phonebook);
+                        PrintAllCallsByContact(phonebook);
                         break;
                     case 2:
-                        // MakeNewCall(phonebook);
+                        MakeNewCall(phonebook);
                         break;
                     case 3:
                         MainMenu(phonebook);
